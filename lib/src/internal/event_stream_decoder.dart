@@ -70,39 +70,40 @@ class EventStreamDecoder
           // Comment
         } else {
           final i = line.indexOf(':');
+          if (i > -1) {
+            // 'name:value'
+            final name = line.substring(0, i);
+            var value = line.substring(i + 1);
 
-          // 'name:value'
-          final name = line.substring(0, i);
-          var value = line.substring(i + 1);
+            // 'name: value'
+            if (value.startsWith(' ')) {
+              value = value.substring(1);
+            }
+            switch (name) {
+              case 'retry':
+                final amount = int.tryParse(value);
+                final onReceivedTimeout = this.onReceivedTimeout;
+                if (amount != null && onReceivedTimeout != null) {
+                  onReceivedTimeout(Duration(milliseconds: amount));
+                }
+                break;
 
-          // 'name: value'
-          if (value.startsWith(' ')) {
-            value = value.substring(1);
-          }
-          switch (name) {
-            case 'retry':
-              final amount = int.tryParse(value);
-              final onReceivedTimeout = this.onReceivedTimeout;
-              if (amount != null && onReceivedTimeout != null) {
-                onReceivedTimeout(Duration(milliseconds: amount));
-              }
-              break;
+              case 'data':
+                hasData = true;
+                if (dataBuilder.length > 0) {
+                  dataBuilder.write('\n');
+                }
+                dataBuilder.write(value);
+                break;
 
-            case 'data':
-              hasData = true;
-              if (dataBuilder.length > 0) {
-                dataBuilder.write('\n');
-              }
-              dataBuilder.write(value);
-              break;
+              case 'id':
+                id = value;
+                break;
 
-            case 'id':
-              id = value;
-              break;
-
-            case 'event':
-              type = value;
-              break;
+              case 'event':
+                type = value;
+                break;
+            }
           }
         }
       }
